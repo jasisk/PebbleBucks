@@ -1,6 +1,9 @@
 PDF417.QUIETV = PDF417.QUIETH = 0;
 PDF417.ROWHEIGHT = 1;
 jQuery(function($) {
+	var payload = {};
+	var cpkEvents = 'change paste keyup';
+
 	// http://stackoverflow.com/a/901144/205895
 	function getParameterByName(name) {
 		name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
@@ -10,7 +13,7 @@ jQuery(function($) {
 	}
 
 	var validNumberRegEx = /[0-9]{16}/;
-	var $cardNumber = $('#card-number').keyup(function(event) {
+	var $cardNumber = $('#card-number').on(cpkEvents, function(event) {
 		var text = $(this).val().split(/[^0-9]/).join('');
 		$(this).val(text);
 		$('#generate-barcode').prop('disabled', !validNumberRegEx.test(text));
@@ -21,10 +24,11 @@ jQuery(function($) {
 
 	var cardNumber = getParameterByName('card_number');
 	if (validNumberRegEx.test(cardNumber)) {
-		$cardNumber.val(getParameterByName('card_number')).trigger('keyup');
+		$cardNumber.val(getParameterByName('card_number')).change();
+		payload.card_number = cardNumber;
 	}
 
-	$('form').submit(function(event) {
+	$('#barcode-form').submit(function(event) {
 		event.preventDefault();
 
 		var text = $cardNumber.val();
@@ -62,14 +66,28 @@ jQuery(function($) {
 		}
 		if (bit) data.push(byte);
 		
-		var payload = {
-			barcode_data: data,
-			card_number: text
-		};
-		$('#save-and-close').attr('href', 'pebblejs://close#' + encodeURIComponent(JSON.stringify(payload)));
+		payload.barcode_data = data;
+		payload.card_number = text;
+		
 		$('#barcode-container').show();
 	});
-	$('a.done').click(function(event) {
+
+	var $username = $('#username').on(cpkEvents, function(event) {
+		payload.username = $(this).val();
+	});
+
+	var username = getParameterByName('username');
+	if (username) {
+		$username.val(username).change();
+	}
+
+	$('#password').on(cpkEvents, function(event) {
+		payload.password = $(this).val();
+	});
+
+	$('#save-and-close').click(function(event) {
 		event.preventDefault();
+		$(':active').blur();
+		window.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(payload));
 	});
 });

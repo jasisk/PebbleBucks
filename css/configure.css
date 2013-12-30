@@ -1,7 +1,3 @@
-iframe {
-	width: 100%;
-}
-
 h1.navbar-brand {
 	margin: inherit;
 	font-weight: inherit;
@@ -18,4 +14,8 @@ h2 {
 
 canvas {
 	display: block;
+}
+
+.container .row:last-of-type {
+	margin-bottom: 20px;
 }
