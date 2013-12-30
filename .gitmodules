@@ -1,0 +1,3 @@
+[submodule "pdf417-js"]
+	path = pdf417-js
+	url = https://github.com/bkuzmic/pdf417-js.git

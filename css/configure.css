@@ -1,0 +1,21 @@
+iframe {
+	width: 100%;
+}
+
+h1.navbar-brand {
+	margin: inherit;
+	font-weight: inherit;
+}
+
+h2 {
+	font-size: 1.25em;
+}
+
+#barcode-container {
+	display: none;
+	margin-top: 20px;
+}
+
+canvas {
+	display: block;
+}
