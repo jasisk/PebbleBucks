@@ -14,6 +14,8 @@ h2 {
 
 canvas {
 	display: block;
+	image-rendering: -webkit-optimize-contrast;
+	image-rendering: optimize-contrast;
 }
 
 .container .row:last-of-type {
