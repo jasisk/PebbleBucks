@@ -1,148 +1,180 @@
-BWIPJS.debug = BWIPJS.load = BWIPJS.print = $.noop;
-$(function() {
-	function Bitmap() {
-		var clr  = 1;
-		var pts  = [];
-		var minx = Infinity;
-		var miny = Infinity;
-		var maxx = 0;
-		var maxy = 0;
+(function(window) {
+  BWIPJS.debug = BWIPJS.load = BWIPJS.print = function() {};
+  
+  function $(selector, el) {
+    el = el || document;
+    return el.querySelector(selector);
+  }
 
-		function forEachPoint(callback) {
-			for (var i = 0; i < pts.length; i++) {
-				var pt = pts[i];
-				var x = pt.x - minx;
-				var y = maxy - pt.y; // PostScript builds bottom-up, we build top-down.
-				var color = pt.color;
-				callback(x, y, color);
-			}
-		}
+  function Bitmap() {
+    var draw = true;
+    var pts  = [];
+    var minx = Infinity;
+    var miny = Infinity;
+    var maxx = 0;
+    var maxy = 0;
 
-		this.color = function(r, g, b) {
-			clr = +(r + g + b < 3 * 255 / 2);
-		}
+    this.width = function() {
+      return maxx - minx + 1;
+    };
 
-		this.pebble_data = function() {
-			var w = maxx - minx + 1;
-			var h = maxy - miny + 1;
+    this.height = function() {
+      return maxy - miny + 1;
+    };
 
-			var bytesCount = Math.ceil(w * h / 8);
+    function adjustPoint(pt) {
+      return {
+        x: pt.x - minx,
+        y: maxy - pt.y
+      };
+    }
 
-			var data = [];
-			for (var i = 0; i < bytesCount; i++) data.push(0);
+    function forEach(callback) {
+      pts.map(adjustPoint).forEach(callback);
+    }
 
-			forEachPoint(function(x, y, color) {
-				var pixelIndex = y * w + x;
-				var byteIndex = Math.floor(pixelIndex / 8);
-				var bitIndex = pixelIndex % 8;
-				var bit = 1 << bitIndex;
+    this.color = function(r, g, b) {
+      draw = !!(r + g + b < 3 * 255 / 2);
+    }
 
-				if (color) {
-					data[byteIndex] |= bit;
-				} else {
-					data[byteIndex] &= ~bit;
-				}
-			});
+    this.pebble_data = function() {
+      var w = this.width();
+      var h = this.height();
 
-			return [ w, h ].concat(data);
-		}
+      var bytesCount = Math.ceil(w * h / 8);
 
-		this.set = function(x,y) {
-			x = Math.floor(x);
-			y = Math.floor(y);
-			pts.push({
-				x: x,
-				y: y,
-				color: clr
-			});
-			if (minx > x) minx = x;
-			if (miny > y) miny = y;
-			if (maxx < x) maxx = x;
-			if (maxy < y) maxy = y;
-		}
+      var data = [];
+      while (data.length < bytesCount) data.push(0);
 
-		this.show = function(cvsid) {
-			var cvs = document.getElementById(cvsid);
+      forEach(function(pt) {
+        var x = pt.x;
+        var y = pt.y;
 
-			var w = 2 * (maxx - minx + 1);
-			var h = 6 * (maxy - miny + 1);
-			cvs.width  = w;
-			cvs.height = h;
+        var pixelIndex = y * w + x;
+        var byteIndex = Math.floor(pixelIndex / 8);
+        var bitIndex = pixelIndex % 8;
+        var bit = 1 << bitIndex;
+        data[byteIndex] |= bit;
+      });
 
-			var ctx = cvs.getContext('2d');
-			ctx.fillStyle = '#fff';
-			ctx.fillRect(0, 0, w, h);
+      return [ w, h ].concat(data);
+    }
 
-			ctx.fillStyle = '#000';
-			forEachPoint(function(x, y, color) {
-				ctx.fillRect(2 * x, 6 * y, 2, 6);
-			});
-		}
-	}
+    this.set = function(x,y) {
+      if (!draw) return;
 
-	var payload = {};
-	var cpkEvents = 'change paste keyup';
+      x = Math.floor(x);
+      y = Math.floor(y);
+      pts.push({ x: x, y: y });
+      if (minx > x) minx = x;
+      if (miny > y) miny = y;
+      if (maxx < x) maxx = x;
+      if (maxy < y) maxy = y;
+    }
 
-	// http://stackoverflow.com/a/901144/205895
-	function getParameterByName(name) {
-		name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-		var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-			results = regex.exec(location.search);
-		return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-	}
+    this.show = function(cvs) {
+      var xScale = Bitmap.scaleX;
+      var yScale = Bitmap.scaleY;
 
-	var validNumberRegEx = /[0-9]{16}/;
-	var $generateBarcode = $('#generate-barcode');
-	var $cardNumber = $('#card-number').on(cpkEvents, function(event) {
-		var text = $(this).val().split(/[^0-9]/).join('');
-		$(this).val(text);
-		$generateBarcode.prop('disabled', !validNumberRegEx.test(text));
+      var w = xScale * this.width();
+      var h = yScale * this.height();
+      cvs.width  = w;
+      cvs.height = h;
 
-		var left = 16 - text.length;
-		$('#card-number-hint').text(left == 0 ? '' : 'There should be ' + left + ' more digit' + (left == 1 ? '' : 's') + '.');
-	});
+      var ctx = cvs.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
 
-	var cardNumber = getParameterByName('card_number');
-	if (validNumberRegEx.test(cardNumber)) {
-		$cardNumber.val(getParameterByName('card_number')).keyup();
-		payload.card_number = cardNumber;
-	}
+      ctx.fillStyle = '#000';
+      forEach(function(pt) {
+        ctx.fillRect(xScale * pt.x, yScale * pt.y, xScale, yScale);
+      });
+    }
+  };
 
-	$('#barcode-form').submit(function(event) {
-		event.preventDefault();
-		if ($generateBarcode.prop('disabled')) return false;
+  Bitmap.scaleX = 2;
+  Bitmap.scaleY = 6;
 
-		var text = $cardNumber.val();
-		var bw = new BWIPJS;
-		var bitmap = new Bitmap;
-		bw.bitmap(bitmap);
-		bw.push(text);
-		bw.push({ rowmult: 1, compact: true });
-		bw.call('pdf417');
-		bitmap.show('barcode');
+  var validCardNumberLength = 16;
 
-		payload.barcode_data = bitmap.pebble_data();
-		payload.card_number = text;
-		
-		$('#barcode-container').show();
-	});
+  // http://stackoverflow.com/a/901144/205895
+  function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+      results = regex.exec(location.search);
+    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
 
-	var $username = $('#username').on(cpkEvents, function(event) {
-		payload.username = $(this).val();
-	});
+  window.addEventListener('load', function() {
+    var payload = {};
 
-	var username = getParameterByName('username');
-	if (username) {
-		$username.val(username).keyup();
-	}
+    var validNumberRegEx = /[0-9]{16}/;
+    var $generateBarcode = $('#generate-barcode');
+    var $cardNumber = $('#card-number');
 
-	$('#password').on(cpkEvents, function(event) {
-		payload.password = $(this).val();
-	});
+    var cardNumberInputCallback = function() {
+      var left = validCardNumberLength - $cardNumber.value.length;
 
-	$('#save-and-close').click(function(event) {
-		event.preventDefault();
-		$(':active').blur();
-		window.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(payload));
-	});
-});
+      var hint = '';
+      if (left == 0) {
+        $generateBarcode.removeAttribute('disabled');
+      } else {
+        $generateBarcode.disabled = 'disabled';
+        hint = 'There should be ' + left + ' more digit' + (left == 1 ? '' : 's') + '.';
+      }
+
+      $('#card-number-hint').innerHTML = hint;
+    };
+    $cardNumber.addEventListener('input', cardNumberInputCallback);
+
+    var cardNumber = getParameterByName('card_number');
+    if (cardNumber.length == validCardNumberLength) {
+      $cardNumber.value = payload.card_number = cardNumber;
+      cardNumberInputCallback();
+    }
+
+    $('#barcode-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+      if ($generateBarcode.disabled) return;
+
+      var text = $cardNumber.value;
+      var bw = new BWIPJS;
+      var bitmap = new Bitmap;
+      bw.bitmap(bitmap);
+      bw.push(text);
+      bw.push({
+        rowmult: 1,
+        cols: 3,
+        rows: 8,
+        compact: true
+      });
+      bw.call('pdf417');
+      bitmap.show($('#barcode'));
+
+      payload.barcode_data = bitmap.pebble_data();
+      payload.card_number = text;
+      
+      $('#barcode-container').style.display = 'inherit';
+    });
+
+    var $username = $('#username');
+    $username.addEventListener('input', function() {
+      payload.username = $username.value;
+    });
+
+    var username = getParameterByName('username');
+    if (username) {
+      $username.value = payload.username = username;
+    }
+
+    var $password = $('#password');
+    $password.addEventListener('input', function(event) {
+      payload.password = $password.value;
+    });
+
+    $('#save-and-close').addEventListener('click', function(event) {
+      event.preventDefault();
+      window.location = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(payload));
+    });
+  });
+})(window);
