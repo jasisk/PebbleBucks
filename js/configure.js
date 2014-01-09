@@ -147,20 +147,18 @@
     canvas.height = 6 * canvasHeight;
 
     // Create Pebble data.
-    var data = [ canvasWidth, canvasHeight ];
-    data.length = 88;
-    for (i = 0; i < 76; i++) {
-      data[i + 2] = 0;
+    var data = [];
+    data.length = 86;
+    for (i = 0; i < 86; i++) {
+      data[i] = 0;
     }
 
     /**
-     * @param {number} row
-     * @param {number} px
-     * @param {number} k
+     * @param {number} x
+     * @param {number} y
      **/
-    function setPixel(row, px, k) {
-      var pixelIndex = row * canvasWidth + px + k;
-      data[2 + Math.floor(pixelIndex / 8)] |= 1 << (pixelIndex % 8);
+    function setPixel(x, y) {
+      data[x] |= 1 << y;
     }
 
     var ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
@@ -184,7 +182,7 @@
         if (0 == (i % 2)) {
           ctx.fillRect(2 * px, py, 2 * w, 6);
           for (var k = 0; k < w; k++) {
-            setPixel(row, px, k);
+            setPixel(px + k, row);
           }
         }
         px += w;
@@ -198,7 +196,7 @@
           if (0 == (i % 2)) {
             ctx.fillRect(2 * px, py, 2 * w, 6);
             for (var k = 0; k < w; k++) {
-              setPixel(row, px, k);
+              setPixel(px + k, row);
             }
           }
           px += w;
@@ -207,7 +205,7 @@
 
       // Stop pattern
       ctx.fillRect(2 * px, py, 2, 6);
-      setPixel(row, px, 0);
+      setPixel(px, row);
     }
 
     return data;
