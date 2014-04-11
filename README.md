@@ -3,7 +3,7 @@
 PebbleBucks 2.0
 ===============
 
-PebbleBucks is an app for the [Pebble Smartwatch](https://getpebble.com) that allows easy access to your Starbucks barcode and account information, including your dollar ballance, free drink count, count of drinks until your next free drink, and last updated date. The select button updates the account information from Starbucks.
+PebbleBucks is an app for the [Pebble Smartwatch](https://getpebble.com) that allows easy access to your Starbucks barcode and account information, including your dollar ballance, free drink count, count of drinks until your next free drink, and last updated date. A short press of the select button updates the account information from Starbucks while a long press toggles the barcode orientation.
 
 Based on [PebbleBucks 2.0 by Neal](https://github.com/Neal/PebbleBucks) and the [original PebbleBucks by matt Donders](https://github.com/mattdonders/PebbleBucks).
 Idea and images are from the original PebbleBucks by mattdonders.
