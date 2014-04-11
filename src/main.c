@@ -27,11 +27,12 @@ static TextLayer *text_layers[4] = { NULL, NULL, NULL, NULL };
 static Window *window;
 
 enum {
-    KEY_REWARDS = 0,
-    KEY_STARS   = 1,
-    KEY_BALANCE = 2,
-    KEY_STATUS  = 3,
-    KEY_BARCODE = 4
+    KEY_REWARDS  = 0,
+    KEY_STARS    = 1,
+    KEY_BALANCE  = 2,
+    KEY_STATUS   = 3,
+    KEY_BARCODE  = 4,
+    KEY_LEFTHAND = 5
 };
 
 #define reward_text_layer text_layers[KEY_REWARDS]
@@ -123,6 +124,8 @@ static void barcode_layer_update_proc(struct Layer *layer, GContext *ctx) {
     APP_LOG((size <= 0 ? APP_LOG_LEVEL_ERROR : APP_LOG_LEVEL_DEBUG), "%s: persist_read_data -> %d", __PRETTY_FUNCTION__, size);
     if (size <= 0) return;
 
+    bool left = persist_read_bool(KEY_LEFTHAND);
+
     graphics_context_set_fill_color(ctx, GColorWhite);
     GRect draw_rect = GRect(
         BARCODE_MIN_X - 1,
@@ -141,7 +144,12 @@ static void barcode_layer_update_proc(struct Layer *layer, GContext *ctx) {
 
         for (int16_t x = 0; x < 8; x++) {
             if (column & (1 << x)) {
-                GRect rect = GRect(BARCODE_MIN_X + 8 * x, BARCODE_MIN_Y + rect_y, 8, rect_h);
+                GRect rect;
+                if (left == false) {
+                    rect = GRect(BARCODE_MIN_X + 8 * x, BARCODE_MIN_Y + rect_y, 8, rect_h);
+                } else {
+                    rect = GRect(BARCODE_MAX_X - (8 * (x + 1)), BARCODE_MAX_Y - rect_y - rect_h, 8, rect_h);
+                }
                 graphics_fill_rect(ctx, rect, 0, GCornerNone);
             }
         }
@@ -155,8 +163,15 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     app_message_outbox_send();
 }
 
+static void select_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+    bool left = !persist_read_bool(KEY_LEFTHAND);
+    persist_write_bool(KEY_LEFTHAND, left);
+    layer_mark_dirty(barcode_layer);
+}
+
 static void click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+    window_long_click_subscribe(BUTTON_ID_SELECT, 0, select_long_click_handler, NULL);
 }
 
 static void window_load(Window *window) {
