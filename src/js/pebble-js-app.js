@@ -38,6 +38,7 @@
 
       var xhr = new XMLHttpRequest();
       xhr.open('POST', 'https://www.starbucks.com/account/signin', true);
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
       xhr.onloadstart = startLoad;
       xhr.onload = function() {
         if (xhr.readyState != 4) return;
@@ -47,8 +48,11 @@
           return;
         }
 
+        var cookie = xhr.getResponseHeader('Set-Cookie');
+
         xhr = new XMLHttpRequest();
         xhr.open('GET', 'https://www.starbucks.com/account/home', true);
+        xhr.setRequestHeader('Cookie', cookie);
         xhr.onloadstart = startLoad;
         xhr.onload = function() {
           if (xhr.readyState != 4) return;
@@ -116,7 +120,7 @@
     storeKeyFromPayload('card_number');
     storeKeyFromPayload('username');
     storeKeyFromPayload('password');
-    
+
     if (payload.barcode_data) Pebble.sendAppMessage({ barcode: payload.barcode_data });
   });
 
